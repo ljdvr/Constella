@@ -192,16 +192,50 @@ public class Canvas {
         public void mouseClicked(MouseEvent e) {
             if (selectedWindow == 0) {
                 switch (selectedTool) {
-                    case 1: {
+                    case 1: { // Add Star
                         Vertex v = new Vertex("" + vertexList.size(), e.getX(), e.getY());
                         vertexList.add(v);
                         v.draw(graphic);
                         break;
                     }
-                    case 4: {
+                    case 4: { // Remove Tool
+                        boolean vertexRemoved = false;
+                        for (int i = vertexList.size() - 1; i >= 0; i--) {
+                            Vertex vertex = vertexList.get(i);
+                            if (vertex.hasIntersection(e.getX(), e.getY())) {
+                                for (int j = edgeList.size() - 1; j >= 0; j--) {
+                                    Edge edge = edgeList.get(j);
+                                    if (edge.vertex1 == vertex || edge.vertex2 == vertex) {
+                                        if (edge.vertex1 == vertex) {
+                                            edge.vertex2.connectedVertices.remove(vertex);
+                                        } else {
+                                            edge.vertex1.connectedVertices.remove(vertex);
+                                        }
+                                        edgeList.remove(j);
+                                    }
+                                }
+                                vertexList.remove(i);
+                                vertexRemoved = true;
+                                break;
+                            }
+                        }
+
+                        if (!vertexRemoved) {
+                            for (int i = edgeList.size() - 1; i >= 0; i--) {
+                                Edge edge = edgeList.get(i);
+                                if (edge.hasIntersection(e.getX(), e.getY())) {
+                                    edge.vertex1.connectedVertices.remove(edge.vertex2);
+                                    edge.vertex2.connectedVertices.remove(edge.vertex1);
+                                    edgeList.remove(i);
+                                    break;
+                                }
+                            }
+                        }
                         break;
                     }
+
                 }
+                refresh();
             }
         }
         @Override public void mouseEntered(MouseEvent e) {}
@@ -210,7 +244,7 @@ public class Canvas {
         public void mousePressed(MouseEvent e) {
             if (selectedWindow == 0 && vertexList.size() > 0) {
                 switch (selectedTool) {
-                    case 2: {
+                    case 2: { // Connect Stars
                         for (Vertex v : vertexList) {
                             if (v.hasIntersection(e.getX(), e.getY())) {
                                 v.wasClicked = true;
@@ -219,7 +253,7 @@ public class Canvas {
                         }
                         break;
                     }
-                    case 3: {
+                    case 3: { // Move Tool
                         for (Edge d : edgeList) {
                             if (d.hasIntersection(e.getX(), e.getY())) {
                                 d.wasClicked = true;
@@ -234,7 +268,17 @@ public class Canvas {
                         }
                         break;
                     }
+                    case 4: { // Remove Tool - Visual feedback when hovering over items to remove
+                        for (Edge d : edgeList) {
+                            d.wasClicked = d.hasIntersection(e.getX(), e.getY());
+                        }
+                        for (Vertex v : vertexList) {
+                            v.wasClicked = v.hasIntersection(e.getX(), e.getY());
+                        }
+                        break;
+                    }
                 }
+                refresh();
             }
         }
         @Override
