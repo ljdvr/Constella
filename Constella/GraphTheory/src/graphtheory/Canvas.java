@@ -5,16 +5,12 @@ package graphtheory;
  * @author mk
  */
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 import java.util.Vector;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 
 public class Canvas {
 
@@ -23,11 +19,11 @@ public class Canvas {
     private CanvasPane canvas;
     private Graphics2D graphic;
     private Color backgroundColour;
-    private Image canvasImage,  canvasImage2;
+    private Image canvasImage, canvasImage2;
     private int selectedTool;
     private int selectedWindow;
     private Dimension screenSize;
-    public int width,  height;
+    public int width, height;
     private int clickedVertexIndex;
     private int clickedEdgeIndex;
     private FileManager fileManager = new FileManager();
@@ -37,7 +33,7 @@ public class Canvas {
     private Vector<Edge> edgeList;
     private GraphProperties gP = new GraphProperties();
     /////////////
-    
+
     // Space/constellation theme elements
     private BufferedImage starfield;
     private Random random = new Random();
@@ -51,7 +47,6 @@ public class Canvas {
         InputListener inputListener = new InputListener();
         canvas.addMouseListener(inputListener);
         canvas.addMouseMotionListener(inputListener);
-        frame.setContentPane(canvas);
 
         this.width = width;
         this.height = height;
@@ -60,50 +55,30 @@ public class Canvas {
         // Create starfield background
         createStarfield();
 
-        //events
+        // --- Menu Bar (only File, Extras, Window; Tools removed) ---
         menuBar = new JMenuBar();
-        menuBar.setBackground(new Color(10, 10, 40)); // Dark blue space background
-        
-        JMenu menuOptions = new JMenu("Tools");
+        menuBar.setBackground(new Color(10, 10, 40));
+
         JMenu menuOptions1 = new JMenu("File");
         JMenu menuOptions2 = new JMenu("Extras");
         JMenu menuOptions3 = new JMenu("Window");
-        
-        // Style menus for space theme
-        styleMenu(menuOptions);
+
         styleMenu(menuOptions1);
         styleMenu(menuOptions2);
         styleMenu(menuOptions3);
 
-        JMenuItem item = createMenuItem("Add Star", KeyEvent.VK_A);
-        item.addActionListener(new MenuListener());
-        menuOptions.add(item);
-        
-        item = createMenuItem("Open Constellation", KeyEvent.VK_O);
+        JMenuItem item = createMenuItem("Open Constellation", KeyEvent.VK_O);
         item.addActionListener(new MenuListener());
         menuOptions1.add(item);
-        
+
         item = createMenuItem("Save Constellation", KeyEvent.VK_S);
         item.addActionListener(new MenuListener());
         menuOptions1.add(item);
-        
-        item = createMenuItem("Connect Stars", KeyEvent.VK_E);
-        item.addActionListener(new MenuListener());
-        menuOptions.add(item);
-        
-        item = createMenuItem("Move Tool", KeyEvent.VK_G);
-        item.addActionListener(new MenuListener());
-        menuOptions.add(item);
-        
-        item = createMenuItem("Remove Tool", 0);
-        item.addActionListener(new MenuListener());
-        item.setEnabled(false);
-        menuOptions.add(item);
-        
+
         item = createMenuItem("Auto Arrange Stars", 0);
         item.addActionListener(new MenuListener());
         menuOptions2.add(item);
-        
+
         item = createMenuItem("Clear Sky", 0);
         item.addActionListener(new MenuListener());
         menuOptions2.add(item);
@@ -111,19 +86,54 @@ public class Canvas {
         item = createMenuItem("Constellation View", 0);
         item.addActionListener(new MenuListener());
         menuOptions3.add(item);
-        
+
         item = createMenuItem("Stellar Properties", 0);
         item.addActionListener(new MenuListener());
         menuOptions3.add(item);
 
         menuBar.add(menuOptions1);
-        menuBar.add(menuOptions);
         menuBar.add(menuOptions2);
         menuBar.add(menuOptions3);
 
         frame.setJMenuBar(menuBar);
 
-        backgroundColour = new Color(0, 0, 20, 200); // Semi-transparent dark blue
+        // --- Bottom Panel with Tool Buttons ---
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        bottomPanel.setOpaque(false);
+
+        JButton addStarBtn = new JButton("Add Star");
+        JButton connectStarsBtn = new JButton("Connect Stars");
+        JButton moveToolBtn = new JButton("Move Tool");
+        JButton removeToolBtn = new JButton("Remove Tool");
+
+        for (JButton btn : new JButton[]{addStarBtn, connectStarsBtn, moveToolBtn, removeToolBtn}) {
+            btn.setFocusPainted(false);
+            btn.setBackground(new Color(30, 30, 80, 180));
+            btn.setForeground(Color.BLACK);
+            bottomPanel.add(btn);
+        }
+
+        // Wrap canvas in a layered pane so buttons overlay on top
+        JLayeredPane layeredPane = new JLayeredPane();
+        layeredPane.setPreferredSize(new Dimension(width, height));
+
+        canvas.setBounds(0, 0, width, height);
+
+        // Place buttons just below the status text
+        int statusY = height / 2 + (height * 2) / 5; // same Y as status text
+        bottomPanel.setBounds(30, statusY + 10, width, 30); // centered across width
+
+        layeredPane.add(canvas, JLayeredPane.DEFAULT_LAYER);
+        layeredPane.add(bottomPanel, JLayeredPane.PALETTE_LAYER);
+
+        frame.setContentPane(layeredPane);
+
+
+        // Hook up actions
+        addStarBtn.addActionListener(e -> selectedTool = 1);
+        connectStarsBtn.addActionListener(e -> selectedTool = 2);
+        moveToolBtn.addActionListener(e -> selectedTool = 3);
+        removeToolBtn.addActionListener(e -> selectedTool = 4);
 
         screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         frame.setBounds(screenSize.width / 2 - width / 2, screenSize.height / 2 - height / 2, width, height);
@@ -133,13 +143,13 @@ public class Canvas {
         vertexList = new Vector<Vertex>();
         edgeList = new Vector<Edge>();
     }
-    
+
     private void styleMenu(JMenu menu) {
         menu.setForeground(Color.WHITE);
         menu.setBackground(new Color(10, 10, 40));
         menu.setOpaque(true);
     }
-    
+
     private JMenuItem createMenuItem(String text, int acceleratorKey) {
         JMenuItem item = new JMenuItem(text);
         if (acceleratorKey != 0) {
@@ -150,16 +160,14 @@ public class Canvas {
         item.setOpaque(true);
         return item;
     }
-    
+
     private void createStarfield() {
         starfield = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = starfield.createGraphics();
-        
-        // Fill with dark blue space background
+
         g.setColor(new Color(5, 5, 30));
         g.fillRect(0, 0, width, height);
-        
-        // Draw stars
+
         g.setColor(Color.WHITE);
         for (int i = 0; i < 200; i++) {
             int x = random.nextInt(width);
@@ -167,8 +175,7 @@ public class Canvas {
             int size = random.nextInt(3) + 1;
             g.fillOval(x, y, size, size);
         }
-        
-        // Draw some larger stars
+
         g.setColor(new Color(200, 200, 255));
         for (int i = 0; i < 20; i++) {
             int x = random.nextInt(width);
@@ -176,80 +183,65 @@ public class Canvas {
             int size = random.nextInt(4) + 2;
             g.fillOval(x, y, size, size);
         }
-        
+
         g.dispose();
     }
 
     class InputListener implements MouseListener, MouseMotionListener {
-
         @Override
         public void mouseClicked(MouseEvent e) {
             if (selectedWindow == 0) {
                 switch (selectedTool) {
-                    case 1: { // Add Star
+                    case 1: {
                         Vertex v = new Vertex("" + vertexList.size(), e.getX(), e.getY());
                         vertexList.add(v);
                         v.draw(graphic);
                         break;
                     }
-                    case 4: { // Remove Tool (currently disabled)
+                    case 4: {
                         break;
                     }
                 }
             }
         }
-
-        @Override
-        public void mouseEntered(MouseEvent e) {
-        }
-
-        @Override
-        public void mouseExited(MouseEvent e) {
-        }
-
+        @Override public void mouseEntered(MouseEvent e) {}
+        @Override public void mouseExited(MouseEvent e) {}
         @Override
         public void mousePressed(MouseEvent e) {
             if (selectedWindow == 0 && vertexList.size() > 0) {
                 switch (selectedTool) {
-                    case 2: { // Connect Stars
+                    case 2: {
                         for (Vertex v : vertexList) {
                             if (v.hasIntersection(e.getX(), e.getY())) {
                                 v.wasClicked = true;
                                 clickedVertexIndex = vertexList.indexOf(v);
-                            } else {
-                                v.wasClicked = false;
-                            }
+                            } else v.wasClicked = false;
                         }
                         break;
                     }
-                    case 3: { // Move Tool
+                    case 3: {
                         for (Edge d : edgeList) {
                             if (d.hasIntersection(e.getX(), e.getY())) {
                                 d.wasClicked = true;
                                 clickedEdgeIndex = edgeList.indexOf(d);
-                            } else {
-                                d.wasClicked = false;
-                            }
+                            } else d.wasClicked = false;
                         }
                         for (Vertex v : vertexList) {
                             if (v.hasIntersection(e.getX(), e.getY())) {
                                 v.wasClicked = true;
                                 clickedVertexIndex = vertexList.indexOf(v);
-                            } else {
-                                v.wasClicked = false;
-                            }
+                            } else v.wasClicked = false;
                         }
                         break;
                     }
                 }
             }
         }
-
         @Override
         public void mouseReleased(MouseEvent e) {
             if (selectedWindow == 0 && vertexList.size() > 0) {
                 switch (selectedTool) {
-                    case 2: { // Connect Stars
+                    case 2: {
                         Vertex parentV = vertexList.get(clickedVertexIndex);
                         for (Vertex v : vertexList) {
                             if (v.hasIntersection(e.getX(), e.getY()) && v != parentV && !v.connectedToVertex(parentV)) {
@@ -259,13 +251,11 @@ public class Canvas {
                                 v.wasClicked = false;
                                 parentV.wasClicked = false;
                                 edgeList.add(edge);
-                            } else {
-                                v.wasClicked = false;
-                            }
+                            } else v.wasClicked = false;
                         }
                         break;
                     }
-                    case 3: { // Move Tool
+                    case 3: {
                         vertexList.get(clickedVertexIndex).wasClicked = false;
                         break;
                     }
@@ -274,20 +264,19 @@ public class Canvas {
             erase();
             refresh();
         }
-
         @Override
         public void mouseDragged(MouseEvent e) {
             if (selectedWindow == 0 && vertexList.size() > 0) {
                 erase();
                 switch (selectedTool) {
-                    case 2: { // Connect Stars
-                        graphic.setColor(new Color(100, 200, 255, 150)); // Light blue with transparency
-                        drawLine(vertexList.get(clickedVertexIndex).location.x, 
-                                 vertexList.get(clickedVertexIndex).location.y, 
-                                 e.getX(), e.getY());
+                    case 2: {
+                        graphic.setColor(new Color(100, 200, 255, 150));
+                        drawLine(vertexList.get(clickedVertexIndex).location.x,
+                                vertexList.get(clickedVertexIndex).location.y,
+                                e.getX(), e.getY());
                         break;
                     }
-                    case 3: { // Move Tool
+                    case 3: {
                         if (vertexList.get(clickedVertexIndex).wasClicked) {
                             vertexList.get(clickedVertexIndex).location.x = e.getX();
                             vertexList.get(clickedVertexIndex).location.y = e.getY();
@@ -298,23 +287,14 @@ public class Canvas {
                 refresh();
             }
         }
-
         @Override
         public void mouseMoved(MouseEvent e) {
             if (selectedWindow == 0) {
                 for (Edge d : edgeList) {
-                    if (d.hasIntersection(e.getX(), e.getY())) {
-                        d.wasFocused = true;
-                    } else {
-                        d.wasFocused = false;
-                    }
+                    d.wasFocused = d.hasIntersection(e.getX(), e.getY());
                 }
                 for (Vertex v : vertexList) {
-                    if (v.hasIntersection(e.getX(), e.getY())) {
-                        v.wasFocused = true;
-                    } else {
-                        v.wasFocused = false;
-                    }
+                    v.wasFocused = v.hasIntersection(e.getX(), e.getY());
                 }
                 refresh();
             }
@@ -324,15 +304,7 @@ public class Canvas {
     class MenuListener implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             String command = e.getActionCommand();
-            if (command.equals("Add Star")) {
-                selectedTool = 1;
-            } else if (command.equals("Connect Stars")) {
-                selectedTool = 2;
-            } else if (command.equals("Move Tool")) {
-                selectedTool = 3;
-            } else if (command.equals("Remove Tool")) {
-                selectedTool = 4;
-            } else if (command.equals("Auto Arrange Stars")) {
+            if (command.equals("Auto Arrange Stars")) {
                 arrangeVertices();
                 erase();
             } else if (command.equals("Clear Sky")) {
@@ -344,14 +316,12 @@ public class Canvas {
                 int returnValue = fileManager.jF.showOpenDialog(frame);
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
                     loadFile(fileManager.loadFile(fileManager.jF.getSelectedFile()));
-                    System.out.println(fileManager.jF.getSelectedFile());
-                    selectedWindow=0;
+                    selectedWindow = 0;
                 }
             } else if (command.equals("Save Constellation")) {
                 int returnValue = fileManager.jF.showSaveDialog(frame);
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    fileManager.saveFile(vertexList,fileManager.jF.getSelectedFile());
-                    System.out.println(fileManager.jF.getSelectedFile());
+                    fileManager.saveFile(vertexList, fileManager.jF.getSelectedFile());
                 }
             } else if (command.equals("Constellation View")) {
                 selectedWindow = 0;
@@ -385,10 +355,8 @@ public class Canvas {
             double degInRad = i * deg2rad * interval;
             double x = centerX + (Math.cos(degInRad) * radius);
             double y = centerY + (Math.sin(degInRad) * radius);
-            int X = (int) x;
-            int Y = (int) y;
-            vertexList.get(i).location.x = X;
-            vertexList.get(i).location.y = Y;
+            vertexList.get(i).location.x = (int) x;
+            vertexList.get(i).location.y = (int) y;
         }
     }
 
@@ -396,7 +364,6 @@ public class Canvas {
         for (Vertex v : vList) {
             v.connectedVertices.clear();
         }
-
         for (int i = 0; i < aMatrix.length; i++) {
             for (int j = 0; j < aMatrix.length; j++) {
                 if (aMatrix[i][j] == 1) {
@@ -413,16 +380,13 @@ public class Canvas {
     }
 
     public void refresh() {
-        // Draw starfield background
         graphic.drawImage(starfield, 0, 0, null);
-        
         for (Edge e : edgeList) {
             e.draw(graphic);
         }
         for (Vertex v : vertexList) {
             v.draw(graphic);
         }
-
         canvas.repaint();
     }
 
@@ -434,7 +398,7 @@ public class Canvas {
             graphic = (Graphics2D) canvasImage.getGraphics();
             graphic.setColor(backgroundColour);
             graphic.fillRect(0, 0, size.width, size.height);
-            graphic.setColor(new Color(200, 200, 255)); // Light blue for text
+            graphic.setColor(new Color(200, 200, 255));
         }
         frame.setVisible(visible);
     }
@@ -444,7 +408,7 @@ public class Canvas {
     }
 
     public void erase() {
-        graphic.setColor(new Color(0, 0, 20, 200)); // Semi-transparent dark blue
+        graphic.setColor(new Color(0, 0, 20, 200));
         graphic.fillRect(0, 0, width, height);
     }
 
@@ -455,7 +419,7 @@ public class Canvas {
     public void drawString(String text, int x, int y, float size) {
         Font orig = graphic.getFont();
         graphic.setFont(graphic.getFont().deriveFont(1, size));
-        graphic.setColor(new Color(200, 200, 255)); // Light blue for text
+        graphic.setColor(new Color(200, 200, 255));
         graphic.drawString(text, x, y);
         graphic.setFont(orig);
     }
@@ -467,17 +431,16 @@ public class Canvas {
     private class CanvasPane extends JPanel {
         public void paint(Graphics g) {
             switch (selectedWindow) {
-                case 0: {   // Constellation view
+                case 0: {
                     g.drawImage(canvasImage, 0, 0, null);
                     g.setColor(Color.WHITE);
                     g.drawString("Stars: " + vertexList.size() +
                             "  Connections: " + edgeList.size() +
-                            "  Tool: " + getToolName(selectedTool), 
+                            "  Tool: " + getToolName(selectedTool),
                             50, height / 2 + (height * 2) / 5);
                     break;
                 }
-                
-                case 1: {   // Properties window
+                case 1: {
                     canvasImage2.getGraphics().clearRect(0, 0, width, height);
                     gP.drawAdjacencyMatrix(canvasImage2.getGraphics(), vertexList, width / 2 + 50, 50);
                     gP.drawDistanceMatrix(canvasImage2.getGraphics(), vertexList, width / 2 + 50, height / 2 + 50);
@@ -486,15 +449,15 @@ public class Canvas {
                     g.drawString("See console for constellation diameter information", 100, height / 2 + 50);
                     g.drawImage(canvasImage.getScaledInstance(width / 2, height / 2, Image.SCALE_SMOOTH), 0, 0, null);
                     g.draw3DRect(0, 0, width / 2, height / 2, true);
-                    g.setColor(new Color(200, 200, 255)); // Light blue for text
+                    g.setColor(new Color(200, 200, 255));
                     break;
                 }
             }
         }
     }
-    
+
     private String getToolName(int toolId) {
-        switch(toolId) {
+        switch (toolId) {
             case 1: return "Add Star";
             case 2: return "Connect Stars";
             case 3: return "Move Tool";
