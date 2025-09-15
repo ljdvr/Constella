@@ -421,17 +421,68 @@ public class Canvas {
                     case 2: {
                         Vertex parentV = vertexList.get(clickedVertexIndex);
                         for (Vertex v : vertexList) {
-                            if (v.hasIntersection(e.getX(), e.getY()) && v != parentV && !v.connectedToVertex(parentV)) {
-                                Edge edge = new Edge(v, parentV);
-                                v.addVertex(parentV);
-                                parentV.addVertex(v);
+                            if (v.hasIntersection(e.getX(), e.getY()) && v != parentV) {
+
+                                // ✅ Check if an edge already exists between parentV and v
+                                boolean exists = false;
+                                for (Edge edge : edgeList) {
+                                    if ((edge.vertex1 == parentV && edge.vertex2 == v) ||
+                                        (edge.vertex1 == v && edge.vertex2 == parentV)) {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+
+                                if (exists) {
+                                    JOptionPane.showMessageDialog(
+                                        frame,
+                                        "An edge between these vertices already exists!",
+                                        "Connection Error",
+                                        JOptionPane.WARNING_MESSAGE
+                                    );
+                                    parentV.wasClicked = false;
+                                    v.wasClicked = false;
+                                    return;
+                                }
+
+                                // Ask if directed or undirected
+                                int choice = JOptionPane.showOptionDialog(
+                                    frame,
+                                    "Choose connection type:",
+                                    "Add Connection",
+                                    JOptionPane.YES_NO_CANCEL_OPTION,
+                                    JOptionPane.QUESTION_MESSAGE,
+                                    null,
+                                    new String[]{"Directed", "Undirected", "Cancel"},
+                                    "Directed"
+                                );
+
+                                if (choice == 2 || choice == JOptionPane.CLOSED_OPTION) { // Cancel or closed
+                                    parentV.wasClicked = false;
+                                    v.wasClicked = false;
+                                    return;
+                                }
+
+                                boolean directed = (choice == 0); // 0 = Directed, 1 = Undirected
+                                Edge edge = new Edge(parentV, v, directed);
+                                edgeList.add(edge);
+
+                                if (directed) {
+                                    parentV.addVertex(v); // one way
+                                } else {
+                                    parentV.addVertex(v);
+                                    v.addVertex(parentV); // two way
+                                }
+
                                 v.wasClicked = false;
                                 parentV.wasClicked = false;
-                                edgeList.add(edge);
-                            } else v.wasClicked = false;
+                            } else {
+                                v.wasClicked = false;
+                            }
                         }
                         break;
                     }
+
                     case 3: {
                         vertexList.get(clickedVertexIndex).wasClicked = false;
                         break;
