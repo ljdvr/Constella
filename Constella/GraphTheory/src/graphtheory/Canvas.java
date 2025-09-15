@@ -10,7 +10,6 @@ import java.awt.image.BufferedImage;
 import java.util.Random;
 import java.util.Vector;
 import javax.swing.*;
-import java.awt.BasicStroke;
 
 public class Canvas {
 
@@ -287,6 +286,32 @@ public class Canvas {
                                 
                                 char componentLabel = gP.getComponentLabel(vertex, vertexList);
                                 componentInfo = "Component: " + componentLabel;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    default: {
+                        for (Edge edge : edgeList) {
+                            if (edge.hasIntersection(e.getX(), e.getY())) {
+                                String input = JOptionPane.showInputDialog(
+                                    frame,
+                                    "Enter weight for this edge:",
+                                    edge.getWeight() >= 0 ? edge.getWeight() : ""
+                                );
+                                if (input != null && !input.trim().isEmpty()) {
+                                    try {
+                                        int w = Integer.parseInt(input.trim());
+                                        edge.setWeight(w);
+                                    } catch (NumberFormatException ex) {
+                                        JOptionPane.showMessageDialog(
+                                            frame,
+                                            "Invalid number!",
+                                            "Error",
+                                            JOptionPane.ERROR_MESSAGE
+                                        );
+                                    }
+                                }
                                 break;
                             }
                         }
