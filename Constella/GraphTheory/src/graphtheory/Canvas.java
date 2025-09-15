@@ -422,12 +422,37 @@ public class Canvas {
                         Vertex parentV = vertexList.get(clickedVertexIndex);
                         for (Vertex v : vertexList) {
                             if (v.hasIntersection(e.getX(), e.getY()) && v != parentV && !v.connectedToVertex(parentV)) {
-                                Edge edge = new Edge(v, parentV);
-                                v.addVertex(parentV);
-                                parentV.addVertex(v);
+                                // Ask if directed or undirected
+                                int choice = JOptionPane.showOptionDialog(
+                                    frame,
+                                    "Choose connection type:",
+                                    "Add Connection",
+                                    JOptionPane.YES_NO_CANCEL_OPTION,
+                                    JOptionPane.QUESTION_MESSAGE,
+                                    null,
+                                    new String[]{"Directed", "Undirected", "Cancel"},
+                                    "Directed"
+                                );
+
+                                if (choice == 2) { // Cancel
+                                    parentV.wasClicked = false;
+                                    v.wasClicked = false;
+                                    return;
+                                }
+
+                                boolean directed = (choice == 0);
+                                Edge edge = new Edge(parentV, v, directed);
+                                edgeList.add(edge);
+
+                                if (directed) {
+                                    parentV.addVertex(v); // one way
+                                } else {
+                                    parentV.addVertex(v);
+                                    v.addVertex(parentV);
+                                }
+
                                 v.wasClicked = false;
                                 parentV.wasClicked = false;
-                                edgeList.add(edge);
                             } else v.wasClicked = false;
                         }
                         break;
