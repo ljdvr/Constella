@@ -443,6 +443,8 @@ public class Canvas {
                                 boolean directed = (choice == 0);
                                 Edge edge = new Edge(parentV, v, directed);
                                 edgeList.add(edge);
+                                System.out.println("Created " + (directed ? "directed" : "undirected") + 
+                                " edge from " + parentV.name + " to " + v.name); //debug
 
                                 if (directed) {
                                     parentV.addVertex(v); // one way
