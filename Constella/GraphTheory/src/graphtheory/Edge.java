@@ -70,7 +70,7 @@ public class Edge {
         if (weight >= 0) {
             int midX = (x1 + x2) / 2;
             int midY = (y1 + y2) / 2;
-            g2d.setColor(Color.BLACK);
+            g2d.setColor(Color.WHITE);
             g2d.setFont(new Font("Arial", Font.BOLD, 14));
             g2d.drawString(String.valueOf(weight), midX + 8, midY - 8);
         }
