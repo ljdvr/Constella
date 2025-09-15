@@ -34,6 +34,7 @@ public class Canvas {
     private Vertex selectedVertexForProperties = null;
     private String degreeInfo = "";
     private String componentInfo = "";
+    private Vector<Vertex> currentShortestPath = null;
     /////////////
 
     // Space/constellation theme elements
@@ -64,10 +65,13 @@ public class Canvas {
         JMenu menuOptions1 = new JMenu("File");
         JMenu menuOptions2 = new JMenu("Extras");
         JMenu menuOptions3 = new JMenu("Window");
+        JMenu menuOptions4 = new JMenu("Calculate");
+        
 
         styleMenu(menuOptions1);
         styleMenu(menuOptions2);
         styleMenu(menuOptions3);
+        styleMenu(menuOptions4);
 
         JMenuItem item = createMenuItem("Open Constellation", KeyEvent.VK_O);
         item.addActionListener(new MenuListener());
@@ -93,9 +97,14 @@ public class Canvas {
         item.addActionListener(new MenuListener());
         menuOptions3.add(item);
 
+        item = createMenuItem("Shortest Path", KeyEvent.VK_P);
+        item.addActionListener(new MenuListener());
+        menuOptions4.add(item);
+
         menuBar.add(menuOptions1);
         menuBar.add(menuOptions2);
         menuBar.add(menuOptions3);
+        menuBar.add(menuOptions4);
 
         frame.setJMenuBar(menuBar);
 
@@ -225,6 +234,36 @@ public class Canvas {
         @Override
         public void mouseClicked(MouseEvent e) {
             if (selectedWindow == 0) {
+                boolean clickedOnVertexOrEdge = false;
+                for (Vertex v : vertexList) {
+                    if (v.hasIntersection(e.getX(), e.getY())) {
+                        clickedOnVertexOrEdge = true;
+                        break;
+                    }
+                }
+                if (!clickedOnVertexOrEdge) {
+                    for (Edge edge : edgeList) {
+                        if (edge.hasIntersection(e.getX(), e.getY())) {
+                            clickedOnVertexOrEdge = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!clickedOnVertexOrEdge && selectedTool != 1 && selectedTool != 4) {
+                    selectedVertexForProperties = null;
+                    currentShortestPath = null;
+                    degreeInfo = "";
+                    componentInfo = "";
+                    for (Vertex v : vertexList) v.wasClicked = false;
+                    for (Edge edge : edgeList) {
+                        edge.wasClicked = false;
+                        edge.wasFocused = false;
+                    }
+                    refresh();
+                    return;
+                }
+
                 switch (selectedTool) {
                     case 1: { // Add Star
                         Vertex v = new Vertex("" + vertexList.size(), e.getX(), e.getY());
@@ -253,7 +292,6 @@ public class Canvas {
                                 break;
                             }
                         }
-                        
 
                         if (!vertexRemoved) {
                             for (int i = edgeList.size() - 1; i >= 0; i--) {
@@ -266,6 +304,18 @@ public class Canvas {
                                 }
                             }
                         }
+
+                        // clear all highlights when removing
+                        selectedVertexForProperties = null;
+                        currentShortestPath = null;
+                        degreeInfo = "";
+                        componentInfo = "";
+                        for (Vertex v : vertexList) v.wasClicked = false;
+                        for (Edge edge : edgeList) {
+                            edge.wasClicked = false;
+                            edge.wasFocused = false;
+                        }
+
                         break;
                     }
                     case 5: { 
@@ -285,7 +335,7 @@ public class Canvas {
                                 degreeInfo = "Degree: " + degree;
                                 
                                 char componentLabel = gP.getComponentLabel(vertex, vertexList);
-                                componentInfo = "Component: " + componentLabel;
+                                componentInfo = "Constellation: " + componentLabel;
                                 break;
                             }
                         }
@@ -439,8 +489,13 @@ public class Canvas {
             } else if (command.equals("Clear Sky")) {
                 edgeList.removeAllElements();
                 vertexList.removeAllElements();
+                currentShortestPath = null;
+                selectedVertexForProperties = null;
+                degreeInfo = "";
+                componentInfo = "";
                 clickedVertexIndex = 0;
                 erase();
+                refresh();
             } else if (command.equals("Open Constellation")) {
                 int returnValue = fileManager.jF.showOpenDialog(frame);
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
@@ -476,8 +531,124 @@ public class Canvas {
                     gP.displayContainers(vertexList);
                 }
                 erase();
+            } else if (command.equals("Shortest Path")) {
+            if (vertexList.size() < 2) {
+                JOptionPane.showMessageDialog(frame, "Need at least 2 stars to find a path!", "Info", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
-            refresh();
+            
+            String[] vertexNames = new String[vertexList.size()];
+            for (int i = 0; i < vertexList.size(); i++) {
+                vertexNames[i] = vertexList.get(i).name;
+            }
+            
+            JComboBox<String> startCombo = new JComboBox<>(vertexNames);
+            JComboBox<String> endCombo = new JComboBox<>(vertexNames);
+            
+            JPanel panel = new JPanel(new GridLayout(2, 2));
+            panel.add(new JLabel("Start Star:"));
+            panel.add(startCombo);
+            panel.add(new JLabel("End Star:"));
+            panel.add(endCombo);
+            
+            int result = JOptionPane.showConfirmDialog(frame, panel, 
+                    "Select Path Endpoints", JOptionPane.OK_CANCEL_OPTION);
+            
+            if (result == JOptionPane.OK_OPTION) {
+                Vertex startVertex = vertexList.get(startCombo.getSelectedIndex());
+                Vertex endVertex = vertexList.get(endCombo.getSelectedIndex());
+                
+                if (startVertex == endVertex) {
+                    JOptionPane.showMessageDialog(frame, "Start and end stars cannot be the same!", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Find shortest path using BFS
+                Vector<Vertex> shortestPath = findShortestPath(startVertex, endVertex);
+                
+                if (shortestPath == null || shortestPath.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "No path exists between these stars!", "Info", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    highlightShortestPath(shortestPath);
+                    refresh();
+                    StringBuilder pathInfo = new StringBuilder("Shortest Path: ");
+                    for (Vertex v : shortestPath) {
+                        pathInfo.append(v.name).append(" → ");
+                    }
+                    pathInfo.setLength(pathInfo.length() - 3);
+                    pathInfo.append("\nPath Length: ").append(shortestPath.size() - 1).append(" connections");
+                    
+                    JOptionPane.showMessageDialog(frame, pathInfo.toString(), 
+                            "Shortest Path Found", JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        }
+        
+        refresh();
+        }
+    }
+
+    private Vector<Vertex> findShortestPath(Vertex start, Vertex end) {
+    if (start == end) {
+        Vector<Vertex> path = new Vector<>();
+        path.add(start);
+        return path;
+    }
+    
+    // BFS to find shortest path
+    Vector<Vertex> queue = new Vector<>();
+    Vector<Vertex> visited = new Vector<>();
+    java.util.Map<Vertex, Vertex> parentMap = new java.util.HashMap<>();
+    
+    queue.add(start);
+    visited.add(start);
+    parentMap.put(start, null);
+    
+    while (!queue.isEmpty()) {
+        Vertex current = queue.remove(0);
+        
+        if (current == end) {
+            // Reconstruct path
+            Vector<Vertex> path = new Vector<>();
+            Vertex node = end;
+            while (node != null) {
+                path.add(0, node);
+                node = parentMap.get(node);
+            }
+            return path;
+        }
+        
+        for (Vertex neighbor : current.connectedVertices) {
+            if (!visited.contains(neighbor)) {
+                visited.add(neighbor);
+                parentMap.put(neighbor, current);
+                queue.add(neighbor);
+            }
+        }
+    }
+    
+    return null; // No path found
+}
+
+    private void highlightShortestPath(Vector<Vertex> path) {
+        currentShortestPath = path;
+
+        for (Vertex v : vertexList) v.wasClicked = false;
+        for (Edge e : edgeList) e.wasClicked = false;
+
+        for (Vertex v : path) {
+            v.wasClicked = true;
+        }
+        for (int i = 0; i < path.size() - 1; i++) {
+            Vertex current = path.get(i);
+            Vertex next = path.get(i + 1);
+            for (Edge e : edgeList) {
+                if ((e.vertex1 == current && e.vertex2 == next) || 
+                    (e.vertex1 == next && e.vertex2 == current)) {
+                    e.wasClicked = true;
+                    break;
+                }
+            }
         }
     }
 
@@ -517,22 +688,60 @@ public class Canvas {
     }
 
     public void refresh() {
-    graphic.drawImage(starfield, 0, 0, null);
-    
-    for (Edge e : edgeList) {
-        e.draw(graphic);
+        graphic.drawImage(starfield, 0, 0, null);
+
+        for (Edge e : edgeList) {
+            e.draw(graphic);
+        }
+        for (Vertex v : vertexList) {
+            v.draw(graphic);
+        }
+
+        if (selectedTool == 5 && selectedVertexForProperties != null) {
+            drawDegreeInfo(graphic);
+        }
+
+        if (currentShortestPath != null) {
+            drawShortestPathInfo(graphic, currentShortestPath);
+        }
+
+        canvas.repaint();
     }
-    for (Vertex v : vertexList) {
-        v.draw(graphic);
+
+    private void drawShortestPathInfo(Graphics g, Vector<Vertex> path) {
+        if (path == null || path.isEmpty()) return;
+
+        Graphics2D g2d = (Graphics2D) g;
+
+        g2d.setColor(new Color(100, 150, 255)); 
+        g2d.setStroke(new BasicStroke(4f));
+        for (int i = 0; i < path.size() - 1; i++) {
+            Vertex current = path.get(i);
+            Vertex next = path.get(i + 1);
+            g2d.drawLine(current.location.x, current.location.y,
+                        next.location.x, next.location.y);
+        }
+        g2d.setStroke(new BasicStroke(1f));
+
+        for (int i = 0; i < path.size(); i++) {
+            Vertex v = path.get(i);
+
+            if (i == 0 || i == path.size() - 1) {
+                for (int r = 30; r >= 15; r -= 5) {
+                    int alpha = (int)(120 * (r / 30.0));
+                    g2d.setColor(new Color(50, 150, 255, alpha));
+                    g2d.fillOval(v.location.x - r, v.location.y - r, 2*r, 2*r);
+                }
+            } else {
+                for (int r = 20; r >= 10; r -= 5) {
+                    int alpha = (int)(80 * (r / 20.0));
+                    g2d.setColor(new Color(100, 180, 255, alpha));
+                    g2d.fillOval(v.location.x - r, v.location.y - r, 2*r, 2*r);
+                }
+            }
+        }
     }
-    
-    // Draw degree information if a vertex is selected
-    if (selectedTool == 5 && selectedVertexForProperties != null) {
-        drawDegreeInfo(graphic);
-    }
-    
-    canvas.repaint();
-}
+
     private void drawDegreeInfo(Graphics g) {
         if (selectedVertexForProperties != null) {
             Graphics2D g2d = (Graphics2D) g;
