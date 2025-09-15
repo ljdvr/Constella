@@ -60,6 +60,30 @@ public class GraphProperties {
         return distanceMatrix;
     }
 
+    public int countComponents(Vector<Vertex> vList) {
+        Vector<Vertex> visited = new Vector<Vertex>();
+        int componentCount = 0;
+        
+        for (Vertex v : vList) {
+            if (!visited.contains(v)) {
+                componentCount++;
+                findComponent(v, visited);
+            }
+        }
+        
+        return componentCount;
+    }
+
+    private void findComponent(Vertex v, Vector<Vertex> visited) {
+        visited.add(v);
+        
+        for (Vertex neighbor : v.connectedVertices) {
+            if (!visited.contains(neighbor)) {
+                findComponent(neighbor, visited);
+            }
+        }
+    }
+
     public void displayContainers(Vector<Vertex> vList) {
         vpList = new Vector<VertexPair>();
         int[] kWideGraph = new int[10];

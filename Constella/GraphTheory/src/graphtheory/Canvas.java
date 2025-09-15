@@ -10,7 +10,6 @@ import java.awt.image.BufferedImage;
 import java.util.Random;
 import java.util.Vector;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 
 public class Canvas {
 
@@ -32,6 +31,8 @@ public class Canvas {
     private Vector<Vertex> vertexList;
     private Vector<Edge> edgeList;
     private GraphProperties gP = new GraphProperties();
+    private Vertex selectedVertexForProperties = null;
+    private String degreeInfo = "";
     /////////////
 
     // Space/constellation theme elements
@@ -105,8 +106,10 @@ public class Canvas {
         JButton connectStarsBtn = new JButton("Connect Stars");
         JButton moveToolBtn = new JButton("Move Tool");
         JButton removeToolBtn = new JButton("Remove Tool");
+        JButton viewPropertiesBtn = new JButton("View Properties");
 
-        for (JButton btn : new JButton[]{addStarBtn, connectStarsBtn, moveToolBtn, removeToolBtn}) {
+
+        for (JButton btn : new JButton[]{addStarBtn, connectStarsBtn, moveToolBtn, removeToolBtn, viewPropertiesBtn}) {
             btn.setFocusPainted(false);
             btn.setBackground(new Color(30, 30, 80, 180));
             btn.setForeground(Color.BLACK);
@@ -130,10 +133,38 @@ public class Canvas {
 
 
         // Hook up actions
-        addStarBtn.addActionListener(e -> selectedTool = 1);
-        connectStarsBtn.addActionListener(e -> selectedTool = 2);
-        moveToolBtn.addActionListener(e -> selectedTool = 3);
-        removeToolBtn.addActionListener(e -> selectedTool = 4);
+        addStarBtn.addActionListener(e -> {
+            selectedTool = 1;
+            selectedVertexForProperties = null;
+            degreeInfo = "";
+            refresh();
+        });
+
+        connectStarsBtn.addActionListener(e -> {
+            selectedTool = 2;
+            selectedVertexForProperties = null;
+            degreeInfo = "";
+            refresh();
+        });
+
+        moveToolBtn.addActionListener(e -> {
+            selectedTool = 3;
+            selectedVertexForProperties = null;
+            degreeInfo = "";
+            refresh();
+        });
+
+        removeToolBtn.addActionListener(e -> {
+            selectedTool = 4;
+            selectedVertexForProperties = null;
+            degreeInfo = "";
+            refresh();
+        });
+
+        viewPropertiesBtn.addActionListener(e -> {
+            selectedTool = 5;
+            refresh();
+        });
 
         screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         frame.setBounds(screenSize.width / 2 - width / 2, screenSize.height / 2 - height / 2, width, height);
@@ -219,6 +250,7 @@ public class Canvas {
                                 break;
                             }
                         }
+                        
 
                         if (!vertexRemoved) {
                             for (int i = edgeList.size() - 1; i >= 0; i--) {
@@ -233,7 +265,20 @@ public class Canvas {
                         }
                         break;
                     }
-
+                    case 5: {
+                        selectedVertexForProperties = null;
+                        degreeInfo = "";
+                        
+                        for (int i = vertexList.size() - 1; i >= 0; i--) {
+                            Vertex vertex = vertexList.get(i);
+                            if (vertex.hasIntersection(e.getX(), e.getY())) {
+                                selectedVertexForProperties = vertex;
+                                int degree = vertex.getDegree();
+                                break;
+                            }
+                        }
+                        break;
+                    }
                 }
                 refresh();
             }
@@ -334,8 +379,10 @@ public class Canvas {
         @Override
         public void mouseMoved(MouseEvent e) {
             if (selectedWindow == 0) {
-                for (Edge d : edgeList) {
-                    d.wasFocused = d.hasIntersection(e.getX(), e.getY());
+                if (selectedTool != 5) {
+                    for (Edge d : edgeList) {
+                        d.wasFocused = d.hasIntersection(e.getX(), e.getY());
+                    }
                 }
                 for (Vertex v : vertexList) {
                     v.wasFocused = v.hasIntersection(e.getX(), e.getY());
@@ -380,6 +427,14 @@ public class Canvas {
                     }
                     reloadVertexConnections(matrix, vertexList);
                     gP.generateDistanceMatrix(vertexList);
+                    
+                    int componentCount = gP.countComponents(vertexList);
+                    System.out.println("Graph has " + componentCount + " component(s)");
+                    System.out.println("Vertex degrees:");
+                    for (Vertex v : vertexList) {
+                        System.out.println("  " + v.name + ": " + v.getDegree());
+                    }
+                    
                     gP.displayContainers(vertexList);
                 }
                 erase();
@@ -424,14 +479,62 @@ public class Canvas {
     }
 
     public void refresh() {
-        graphic.drawImage(starfield, 0, 0, null);
-        for (Edge e : edgeList) {
-            e.draw(graphic);
+    graphic.drawImage(starfield, 0, 0, null);
+    
+    for (Edge e : edgeList) {
+        e.draw(graphic);
+    }
+    for (Vertex v : vertexList) {
+        v.draw(graphic);
+    }
+    
+    // Draw degree information if a vertex is selected
+    if (selectedTool == 5 && selectedVertexForProperties != null) {
+        drawDegreeInfo(graphic);
+    }
+    
+    canvas.repaint();
+}
+    private void drawDegreeInfo(Graphics g) {
+        if (selectedVertexForProperties != null) {
+            Graphics2D g2d = (Graphics2D) g;
+            
+            g2d.setColor(new Color(100, 100, 255, 100)); 
+            g2d.fillOval(selectedVertexForProperties.location.x - 25, 
+                        selectedVertexForProperties.location.y - 25, 50, 50);
+            
+            g2d.setColor(new Color(100, 100, 255)); 
+            g2d.setStroke(new BasicStroke(4f));
+            
+            for (Vertex connected : selectedVertexForProperties.connectedVertices) {
+                g.drawLine(selectedVertexForProperties.location.x, 
+                        selectedVertexForProperties.location.y,
+                        connected.location.x, connected.location.y);
+            }
+            g2d.setStroke(new BasicStroke(1f));
+            
+            int popupX = selectedVertexForProperties.location.x + 40;
+            int popupY = selectedVertexForProperties.location.y - 30;
+            
+            g2d.setColor(new Color(0, 0, 0, 220)); 
+            g2d.fillRoundRect(popupX - 15, popupY - 20, 80, 30, 15, 15);
+            
+            g2d.setColor(Color.YELLOW); 
+            g2d.setStroke(new BasicStroke(2f));
+            g2d.drawRoundRect(popupX - 15, popupY - 20, 80, 30, 15, 15);
+            g2d.setStroke(new BasicStroke(1f));
+            
+            g2d.setColor(Color.YELLOW); 
+            g2d.setFont(new Font("Arial", Font.BOLD, 14));
+            g2d.drawString("Degree: " + selectedVertexForProperties.getDegree(), popupX - 10, popupY);
+
+            g2d.setColor(Color.YELLOW);
+            g2d.setStroke(new BasicStroke(2f));
+            g2d.drawLine(popupX, popupY, 
+                        selectedVertexForProperties.location.x + 15, 
+                        selectedVertexForProperties.location.y);
+            g2d.setStroke(new BasicStroke(1f));
         }
-        for (Vertex v : vertexList) {
-            v.draw(graphic);
-        }
-        canvas.repaint();
     }
 
     public void setVisible(boolean visible) {
@@ -478,10 +581,22 @@ public class Canvas {
                 case 0: {
                     g.drawImage(canvasImage, 0, 0, null);
                     g.setColor(Color.WHITE);
+                    
+                    // Get component count
+                    int componentCount = gP.countComponents(vertexList);
+                    
                     g.drawString("Stars: " + vertexList.size() +
                             "  Connections: " + edgeList.size() +
+                            "  Components: " + componentCount +
                             "  Tool: " + getToolName(selectedTool),
                             50, height / 2 + (height * 2) / 5);
+                    
+                    // Show degree info if in view properties mode
+                    if (selectedTool == 5 && selectedVertexForProperties != null) {
+                        g.setColor(Color.YELLOW);
+                        g.setFont(new Font("Arial", Font.BOLD, 14));
+                        g.drawString(degreeInfo, 50, height / 2 + (height * 2) / 5 + 20);
+                    }
                     break;
                 }
                 case 1: {
@@ -506,6 +621,7 @@ public class Canvas {
             case 2: return "Connect Stars";
             case 3: return "Move Tool";
             case 4: return "Remove Tool";
+            case 5: return "View Properties";
             default: return "Unknown";
         }
     }
