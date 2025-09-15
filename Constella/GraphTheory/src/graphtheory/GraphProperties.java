@@ -23,16 +23,23 @@ public class GraphProperties {
     public int[][] generateAdjacencyMatrix(Vector<Vertex> vList, Vector<Edge> eList) {
         adjacencyMatrix = new int[vList.size()][vList.size()];
 
-        for (int a = 0; a < vList.size(); a++)//initialize
-        {
+        for (int a = 0; a < vList.size(); a++) {
             for (int b = 0; b < vList.size(); b++) {
                 adjacencyMatrix[a][b] = 0;
             }
         }
 
         for (int i = 0; i < eList.size(); i++) {
-            adjacencyMatrix[vList.indexOf(eList.get(i).vertex1)][vList.indexOf(eList.get(i).vertex2)] = 1;
-            adjacencyMatrix[vList.indexOf(eList.get(i).vertex2)][vList.indexOf(eList.get(i).vertex1)] = 1;
+            Edge edge = eList.get(i);
+            int index1 = vList.indexOf(edge.vertex1);
+            int index2 = vList.indexOf(edge.vertex2);
+            
+            if (edge.isDirected()) {
+                adjacencyMatrix[index1][index2] = 1;
+            } else {
+                adjacencyMatrix[index1][index2] = 1;
+                adjacencyMatrix[index2][index1] = 1;
+            }
         }
         return adjacencyMatrix;
     }
@@ -78,6 +85,8 @@ public class GraphProperties {
         visited.add(v);
         
         for (Vertex neighbor : v.connectedVertices) {
+            // Only traverse if the connection is bidirectional OR
+            // if there's a directed edge from v to neighbor
             if (!visited.contains(neighbor)) {
                 findComponentSimple(neighbor, visited);
             }
@@ -91,13 +100,34 @@ public class GraphProperties {
         for (Vertex v : vList) {
             if (!visited.contains(v)) {
                 Vector<Vertex> component = new Vector<Vertex>();
-                findComponent(v, component, visited);
+                findComponent(v, vList, component, visited); // pass vList here
                 components.add(component);
             }
         }
         
         return components;
     }
+
+    private void findComponent(Vertex v, Vector<Vertex> vList, Vector<Vertex> component, Vector<Vertex> visited) {
+        visited.add(v);
+        component.add(v);
+
+        // outgoing neighbors
+        for (Vertex neighbor : v.connectedVertices) {
+            if (!visited.contains(neighbor)) {
+                findComponent(neighbor, vList, component, visited);
+            }
+        }
+
+        // incoming neighbors (treat edges as undirected)
+        for (Vertex possibleNeighbor : vList) {
+            if (possibleNeighbor.connectedVertices.contains(v) && !visited.contains(possibleNeighbor)) {
+                findComponent(possibleNeighbor, vList, component, visited);
+            }
+        }
+    }
+
+
 
     public char getComponentLabel(Vertex vertex, Vector<Vertex> vList) {
         Vector<Vector<Vertex>> components = findComponents(vList);
@@ -109,17 +139,6 @@ public class GraphProperties {
         }
         
         return '?';
-    }
-
-    private void findComponent(Vertex v, Vector<Vertex> component, Vector<Vertex> visited) {
-        visited.add(v);
-        component.add(v);
-        
-        for (Vertex neighbor : v.connectedVertices) {
-            if (!visited.contains(neighbor)) {
-                findComponent(neighbor, component, visited);
-            }
-        }
     }
 
     public void displayContainers(Vector<Vertex> vList) {
