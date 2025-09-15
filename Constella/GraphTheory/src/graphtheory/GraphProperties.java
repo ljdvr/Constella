@@ -67,19 +67,57 @@ public class GraphProperties {
         for (Vertex v : vList) {
             if (!visited.contains(v)) {
                 componentCount++;
-                findComponent(v, visited);
+                findComponentSimple(v, visited);
             }
         }
         
         return componentCount;
     }
 
-    private void findComponent(Vertex v, Vector<Vertex> visited) {
+    private void findComponentSimple(Vertex v, Vector<Vertex> visited) {
         visited.add(v);
         
         for (Vertex neighbor : v.connectedVertices) {
             if (!visited.contains(neighbor)) {
-                findComponent(neighbor, visited);
+                findComponentSimple(neighbor, visited);
+            }
+        }
+    }
+
+    public Vector<Vector<Vertex>> findComponents(Vector<Vertex> vList) {
+        Vector<Vector<Vertex>> components = new Vector<Vector<Vertex>>();
+        Vector<Vertex> visited = new Vector<Vertex>();
+        
+        for (Vertex v : vList) {
+            if (!visited.contains(v)) {
+                Vector<Vertex> component = new Vector<Vertex>();
+                findComponent(v, component, visited);
+                components.add(component);
+            }
+        }
+        
+        return components;
+    }
+
+    public char getComponentLabel(Vertex vertex, Vector<Vertex> vList) {
+        Vector<Vector<Vertex>> components = findComponents(vList);
+        
+        for (int i = 0; i < components.size(); i++) {
+            if (components.get(i).contains(vertex)) {
+                return (char)('A' + i); 
+            }
+        }
+        
+        return '?';
+    }
+
+    private void findComponent(Vertex v, Vector<Vertex> component, Vector<Vertex> visited) {
+        visited.add(v);
+        component.add(v);
+        
+        for (Vertex neighbor : v.connectedVertices) {
+            if (!visited.contains(neighbor)) {
+                findComponent(neighbor, component, visited);
             }
         }
     }

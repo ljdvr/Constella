@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.util.Random;
 import java.util.Vector;
 import javax.swing.*;
+import java.awt.BasicStroke;
 
 public class Canvas {
 
@@ -33,6 +34,7 @@ public class Canvas {
     private GraphProperties gP = new GraphProperties();
     private Vertex selectedVertexForProperties = null;
     private String degreeInfo = "";
+    private String componentInfo = "";
     /////////////
 
     // Space/constellation theme elements
@@ -131,12 +133,11 @@ public class Canvas {
 
         frame.setContentPane(layeredPane);
 
-
-        // Hook up actions
         addStarBtn.addActionListener(e -> {
             selectedTool = 1;
             selectedVertexForProperties = null;
             degreeInfo = "";
+            componentInfo = "";
             refresh();
         });
 
@@ -144,6 +145,7 @@ public class Canvas {
             selectedTool = 2;
             selectedVertexForProperties = null;
             degreeInfo = "";
+            componentInfo = "";
             refresh();
         });
 
@@ -151,6 +153,7 @@ public class Canvas {
             selectedTool = 3;
             selectedVertexForProperties = null;
             degreeInfo = "";
+            componentInfo = "";
             refresh();
         });
 
@@ -158,6 +161,7 @@ public class Canvas {
             selectedTool = 4;
             selectedVertexForProperties = null;
             degreeInfo = "";
+            componentInfo = "";
             refresh();
         });
 
@@ -265,15 +269,24 @@ public class Canvas {
                         }
                         break;
                     }
-                    case 5: {
+                    case 5: { 
                         selectedVertexForProperties = null;
                         degreeInfo = "";
+                        componentInfo = "";
+                        
+                        for (Edge d : edgeList) {
+                            d.wasFocused = false;
+                        }
                         
                         for (int i = vertexList.size() - 1; i >= 0; i--) {
                             Vertex vertex = vertexList.get(i);
                             if (vertex.hasIntersection(e.getX(), e.getY())) {
                                 selectedVertexForProperties = vertex;
                                 int degree = vertex.getDegree();
+                                degreeInfo = "Degree: " + degree;
+                                
+                                char componentLabel = gP.getComponentLabel(vertex, vertexList);
+                                componentInfo = "Component: " + componentLabel;
                                 break;
                             }
                         }
@@ -499,11 +512,11 @@ public class Canvas {
         if (selectedVertexForProperties != null) {
             Graphics2D g2d = (Graphics2D) g;
             
-            g2d.setColor(new Color(100, 100, 255, 100)); 
+            g2d.setColor(new Color(100, 100, 255, 100)); // Blue glow
             g2d.fillOval(selectedVertexForProperties.location.x - 25, 
                         selectedVertexForProperties.location.y - 25, 50, 50);
             
-            g2d.setColor(new Color(100, 100, 255)); 
+            g2d.setColor(new Color(100, 100, 255)); // Blue color for edges
             g2d.setStroke(new BasicStroke(4f));
             
             for (Vertex connected : selectedVertexForProperties.connectedVertices) {
@@ -516,21 +529,25 @@ public class Canvas {
             int popupX = selectedVertexForProperties.location.x + 40;
             int popupY = selectedVertexForProperties.location.y - 30;
             
-            g2d.setColor(new Color(0, 0, 0, 220)); 
-            g2d.fillRoundRect(popupX - 15, popupY - 20, 80, 30, 15, 15);
+            int popupWidth = 120;
+            int popupHeight = 50;
             
-            g2d.setColor(Color.YELLOW); 
+            g2d.setColor(new Color(0, 0, 0, 220)); // Semi-transparent black
+            g2d.fillRoundRect(popupX - 15, popupY - 25, popupWidth, popupHeight, 15, 15);
+            
+            g2d.setColor(Color.YELLOW); // Yellow border
             g2d.setStroke(new BasicStroke(2f));
-            g2d.drawRoundRect(popupX - 15, popupY - 20, 80, 30, 15, 15);
+            g2d.drawRoundRect(popupX - 15, popupY - 25, popupWidth, popupHeight, 15, 15);
             g2d.setStroke(new BasicStroke(1f));
             
-            g2d.setColor(Color.YELLOW); 
+            g2d.setColor(Color.YELLOW); // Yellow text
             g2d.setFont(new Font("Arial", Font.BOLD, 14));
-            g2d.drawString("Degree: " + selectedVertexForProperties.getDegree(), popupX - 10, popupY);
-
-            g2d.setColor(Color.YELLOW);
+            g2d.drawString(degreeInfo, popupX - 10, popupY - 5);
+            g2d.drawString(componentInfo, popupX - 10, popupY + 15);
+            
+            g2d.setColor(Color.YELLOW); // Yellow line
             g2d.setStroke(new BasicStroke(2f));
-            g2d.drawLine(popupX, popupY, 
+            g2d.drawLine(popupX, popupY - 10, 
                         selectedVertexForProperties.location.x + 15, 
                         selectedVertexForProperties.location.y);
             g2d.setStroke(new BasicStroke(1f));
@@ -590,13 +607,7 @@ public class Canvas {
                             "  Components: " + componentCount +
                             "  Tool: " + getToolName(selectedTool),
                             50, height / 2 + (height * 2) / 5);
-                    
-                    // Show degree info if in view properties mode
-                    if (selectedTool == 5 && selectedVertexForProperties != null) {
-                        g.setColor(Color.YELLOW);
-                        g.setFont(new Font("Arial", Font.BOLD, 14));
-                        g.drawString(degreeInfo, 50, height / 2 + (height * 2) / 5 + 20);
-                    }
+
                     break;
                 }
                 case 1: {
