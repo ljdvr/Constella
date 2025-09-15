@@ -604,7 +604,7 @@ public class Canvas {
                     
                     g.drawString("Stars: " + vertexList.size() +
                             "  Connections: " + edgeList.size() +
-                            "  Components: " + componentCount +
+                            "  Constellation: " + componentCount +
                             "  Tool: " + getToolName(selectedTool),
                             50, height / 2 + (height * 2) / 5);
 
