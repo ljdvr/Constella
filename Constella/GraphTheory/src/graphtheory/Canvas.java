@@ -590,9 +590,9 @@ public class Canvas {
                 selectedWindow = 0;
                 erase();
             } else if (command.equals("Stellar Properties")) {
-                selectedWindow = 1;
                 if (vertexList.size() > 0) {
                     int[][] matrix = gP.generateAdjacencyMatrix(vertexList, edgeList);
+
                     Vector<Vertex> tempList = gP.vertexConnectivity(vertexList);
                     for (Vertex v : tempList) {
                         vertexList.get(vertexList.indexOf(v)).wasClicked = true;
@@ -608,6 +608,67 @@ public class Canvas {
                     }
                     
                     gP.displayContainers(vertexList);
+
+                    // --- Show adjacency matrix in a popup JPanel ---
+                    JPanel matrixPanel = new JPanel() {
+                    @Override
+                    protected void paintComponent(Graphics g) {
+                        super.paintComponent(g);
+                        setBackground(Color.GRAY);
+
+                        int n = vertexList.size();
+                        if (n == 0) return;
+
+                        int panelWidth = getWidth();
+                        int panelHeight = getHeight();
+
+                        // Determine cell size based on panel size
+                        int cellSize = Math.min(panelWidth, panelHeight) / (n + 1); // +1 for labels
+
+                        Graphics2D g2d = (Graphics2D) g;
+                        g2d.setColor(Color.BLACK);
+
+                        // Draw grid
+                        for (int i = 0; i <= n; i++) {
+                            // horizontal lines
+                            g2d.drawLine(cellSize, i * cellSize + cellSize, n * cellSize + cellSize, i * cellSize + cellSize);
+                            // vertical lines
+                            g2d.drawLine(i * cellSize + cellSize, cellSize, i * cellSize + cellSize, n * cellSize + cellSize);
+                        }
+
+                        // Draw vertex labels
+                        g2d.setColor(Color.BLUE);
+                        for (int i = 0; i < n; i++) {
+                            g2d.drawString(vertexList.get(i).name, cellSize / 3, (i + 1) * cellSize + cellSize - cellSize / 4);
+                            g2d.drawString(vertexList.get(i).name, (i + 1) * cellSize + cellSize / 3, cellSize - cellSize / 4);
+                        }
+
+                        // Draw matrix values
+                        g2d.setColor(Color.RED);
+                        int[][] matrix = gP.generateAdjacencyMatrix(vertexList, edgeList);
+                        for (int i = 0; i < n; i++) {
+                            for (int j = 0; j < n; j++) {
+                                String val = String.valueOf(matrix[i][j]);
+                                int x = (j + 1) * cellSize + cellSize / 3;
+                                int y = (i + 1) * cellSize + cellSize - cellSize / 4;
+                                g2d.drawString(val, x, y);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public Dimension getPreferredSize() {
+                        int n = vertexList.size();
+                        if (n == 0) return new Dimension(200, 200);
+
+                        int cellSize = 25; // size per cell in pixels
+                        int size = (n + 1) * cellSize; // +1 for labels
+                        return new Dimension(size, size); // initial size, can be resized
+                    }
+                };
+
+                JOptionPane.showMessageDialog(frame, new JScrollPane(matrixPanel), "Adjacency Matrix", JOptionPane.PLAIN_MESSAGE);
+
                 }
                 erase();
             } else if (command.equals("Shortest Path")) {
