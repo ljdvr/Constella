@@ -101,6 +101,10 @@ public class Canvas {
         item.addActionListener(new MenuListener());
         menuOptions4.add(item);
 
+        item = createMenuItem("Minimum Spanning Tree", KeyEvent.VK_M);
+        item.addActionListener(new MenuListener());
+        menuOptions4.add(item);
+
         menuBar.add(menuOptions1);
         menuBar.add(menuOptions2);
         menuBar.add(menuOptions3);
@@ -583,103 +587,136 @@ public class Canvas {
                 }
                 erase();
             } else if (command.equals("Shortest Path")) {
-            if (vertexList.size() < 2) {
-                JOptionPane.showMessageDialog(frame, "Need at least 2 stars to find a path!", "Info", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            
-            String[] vertexNames = new String[vertexList.size()];
-            for (int i = 0; i < vertexList.size(); i++) {
-                vertexNames[i] = vertexList.get(i).name;
-            }
-            
-            JComboBox<String> startCombo = new JComboBox<>(vertexNames);
-            JComboBox<String> endCombo = new JComboBox<>(vertexNames);
-            
-            JPanel panel = new JPanel(new GridLayout(2, 2));
-            panel.add(new JLabel("Start Star:"));
-            panel.add(startCombo);
-            panel.add(new JLabel("End Star:"));
-            panel.add(endCombo);
-            
-            int result = JOptionPane.showConfirmDialog(frame, panel, 
-                    "Select Path Endpoints", JOptionPane.OK_CANCEL_OPTION);
-            
-            if (result == JOptionPane.OK_OPTION) {
-                Vertex startVertex = vertexList.get(startCombo.getSelectedIndex());
-                Vertex endVertex = vertexList.get(endCombo.getSelectedIndex());
-                
-                if (startVertex == endVertex) {
-                    JOptionPane.showMessageDialog(frame, "Start and end stars cannot be the same!", "Error", JOptionPane.ERROR_MESSAGE);
+                if (vertexList.size() < 2) {
+                    JOptionPane.showMessageDialog(frame, "Need at least 2 stars to find a path!", "Info", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
                 
-                // Find shortest path using BFS
-                Vector<Vertex> shortestPath = findShortestPath(startVertex, endVertex);
+                String[] vertexNames = new String[vertexList.size()];
+                for (int i = 0; i < vertexList.size(); i++) {
+                    vertexNames[i] = vertexList.get(i).name;
+                }
                 
-                if (shortestPath == null || shortestPath.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame, "No path exists between these stars!", "Info", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    highlightShortestPath(shortestPath);
-                    refresh();
-                    StringBuilder pathInfo = new StringBuilder("Shortest Path: ");
-                    for (Vertex v : shortestPath) {
-                        pathInfo.append(v.name).append(" → ");
-                    }
-                    pathInfo.setLength(pathInfo.length() - 3);
-                    pathInfo.append("\nPath Length: ").append(shortestPath.size() - 1).append(" connections");
+                JComboBox<String> startCombo = new JComboBox<>(vertexNames);
+                JComboBox<String> endCombo = new JComboBox<>(vertexNames);
+                
+                JPanel panel = new JPanel(new GridLayout(2, 2));
+                panel.add(new JLabel("Start Star:"));
+                panel.add(startCombo);
+                panel.add(new JLabel("End Star:"));
+                panel.add(endCombo);
+                
+                int result = JOptionPane.showConfirmDialog(frame, panel, 
+                        "Select Path Endpoints", JOptionPane.OK_CANCEL_OPTION);
+                
+                if (result == JOptionPane.OK_OPTION) {
+                    Vertex startVertex = vertexList.get(startCombo.getSelectedIndex());
+                    Vertex endVertex = vertexList.get(endCombo.getSelectedIndex());
                     
-                    JOptionPane.showMessageDialog(frame, pathInfo.toString(), 
-                            "Shortest Path Found", JOptionPane.INFORMATION_MESSAGE);
+                    if (startVertex == endVertex) {
+                        JOptionPane.showMessageDialog(frame, "Start and end stars cannot be the same!", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    
+                    // Find shortest path using BFS
+                    Vector<Vertex> shortestPath = findShortestPath(startVertex, endVertex);
+                    
+                    if (shortestPath == null || shortestPath.isEmpty()) {
+                        JOptionPane.showMessageDialog(frame, "No path exists between these stars!", "Info", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        highlightShortestPath(shortestPath);
+                        refresh();
+                        StringBuilder pathInfo = new StringBuilder("Shortest Path: ");
+                        for (Vertex v : shortestPath) {
+                            pathInfo.append(v.name).append(" → ");
+                        }
+                        pathInfo.setLength(pathInfo.length() - 3);
+                        pathInfo.append("\nPath Length: ").append(shortestPath.size() - 1).append(" connections");
+                        
+                        JOptionPane.showMessageDialog(frame, pathInfo.toString(), 
+                                "Shortest Path Found", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                }
+            } else if (command.equals("Minimum Spanning Tree")) {
+                if (vertexList.size() < 2) {
+                    JOptionPane.showMessageDialog(frame, "Need at least 2 stars for MST!", "Info", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+                
+                if (!allEdgesHaveWeights()) {
+                    JOptionPane.showMessageDialog(frame, 
+                        "All connections must have weight values for MST calculation!", 
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Check if graph is connected
+                int componentCount = gP.countComponents(vertexList);
+                if (componentCount > 1) {
+                    JOptionPane.showMessageDialog(frame, 
+                        "Graph is not connected! MST requires a single constellation.", 
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                Vector<Edge> mstEdges = findMinimumSpanningTree();
+                if (mstEdges != null) {
+                    highlightMST(mstEdges);
+                    refresh();
+                    
+                    int totalWeight = calculateTotalWeight(mstEdges);
+                    JOptionPane.showMessageDialog(frame, 
+                        "Minimum Spanning Tree found!\nTotal weight: " + totalWeight +
+                        "\nEdges: " + mstEdges.size(),
+                        "MST Result", JOptionPane.INFORMATION_MESSAGE);
                 }
             }
-        }
-        
-        refresh();
+            
+            refresh();
         }
     }
 
     private Vector<Vertex> findShortestPath(Vertex start, Vertex end) {
-    if (start == end) {
-        Vector<Vertex> path = new Vector<>();
-        path.add(start);
-        return path;
-    }
-    
-    // BFS to find shortest path
-    Vector<Vertex> queue = new Vector<>();
-    Vector<Vertex> visited = new Vector<>();
-    java.util.Map<Vertex, Vertex> parentMap = new java.util.HashMap<>();
-    
-    queue.add(start);
-    visited.add(start);
-    parentMap.put(start, null);
-    
-    while (!queue.isEmpty()) {
-        Vertex current = queue.remove(0);
-        
-        if (current == end) {
-            // Reconstruct path
+        if (start == end) {
             Vector<Vertex> path = new Vector<>();
-            Vertex node = end;
-            while (node != null) {
-                path.add(0, node);
-                node = parentMap.get(node);
-            }
+            path.add(start);
             return path;
         }
         
-        for (Vertex neighbor : current.connectedVertices) {
-            if (!visited.contains(neighbor)) {
-                visited.add(neighbor);
-                parentMap.put(neighbor, current);
-                queue.add(neighbor);
+        // BFS to find shortest path
+        Vector<Vertex> queue = new Vector<>();
+        Vector<Vertex> visited = new Vector<>();
+        java.util.Map<Vertex, Vertex> parentMap = new java.util.HashMap<>();
+        
+        queue.add(start);
+        visited.add(start);
+        parentMap.put(start, null);
+        
+        while (!queue.isEmpty()) {
+            Vertex current = queue.remove(0);
+            
+            if (current == end) {
+                // Reconstruct path
+                Vector<Vertex> path = new Vector<>();
+                Vertex node = end;
+                while (node != null) {
+                    path.add(0, node);
+                    node = parentMap.get(node);
+                }
+                return path;
+            }
+            
+            for (Vertex neighbor : current.connectedVertices) {
+                if (!visited.contains(neighbor)) {
+                    visited.add(neighbor);
+                    parentMap.put(neighbor, current);
+                    queue.add(neighbor);
+                }
             }
         }
+        
+        return null; // No path found
     }
-    
-    return null; // No path found
-}
 
     private void highlightShortestPath(Vector<Vertex> path) {
         currentShortestPath = path;
@@ -701,6 +738,93 @@ public class Canvas {
                 }
             }
         }
+    }
+
+    private Vector<Edge> findMinimumSpanningTree() {
+        // Use Prim's algorithm for MST
+        if (edgeList.isEmpty()) return null;
+        
+        Vector<Edge> mstEdges = new Vector<>();
+        Vector<Vertex> visited = new Vector<>();
+        
+        // Start with first vertex
+        visited.add(vertexList.get(0));
+        
+        while (visited.size() < vertexList.size()) {
+            Edge minEdge = null;
+            int minWeight = Integer.MAX_VALUE;
+            
+            // Find minimum weight edge connecting visited to unvisited
+            for (Edge edge : edgeList) {
+                boolean v1In = visited.contains(edge.vertex1);
+                boolean v2In = visited.contains(edge.vertex2);
+                
+                if (v1In != v2In && edge.getWeight() >= 0) { // Only consider weighted edges
+                    if (edge.getWeight() < minWeight) {
+                        minWeight = edge.getWeight();
+                        minEdge = edge;
+                    }
+                }
+            }
+            
+            if (minEdge == null) {
+                // Graph is disconnected or has unweighted edges
+                JOptionPane.showMessageDialog(frame, 
+                    "Some connections lack weight values!", 
+                    "Error", JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
+            
+            mstEdges.add(minEdge);
+            
+            // Add the unvisited vertex to visited set
+            if (visited.contains(minEdge.vertex1)) {
+                visited.add(minEdge.vertex2);
+            } else {
+                visited.add(minEdge.vertex1);
+            }
+        }
+        
+        return mstEdges;
+    }
+
+    private void highlightMST(Vector<Edge> mstEdges) {
+        // Clear previous highlights
+        for (Vertex v : vertexList) v.wasClicked = false;
+        for (Edge e : edgeList) e.wasClicked = false;
+        
+        // Highlight MST edges
+        for (Edge mstEdge : mstEdges) {
+            for (Edge graphEdge : edgeList) {
+                if ((graphEdge.vertex1 == mstEdge.vertex1 && graphEdge.vertex2 == mstEdge.vertex2) ||
+                    (graphEdge.vertex1 == mstEdge.vertex2 && graphEdge.vertex2 == mstEdge.vertex1)) {
+                    graphEdge.wasClicked = true;
+                    break;
+                }
+            }
+        }
+        
+        // Highlight all vertices in MST
+        for (Vertex v : vertexList) {
+            v.wasClicked = true;
+        }
+    }
+
+    private int calculateTotalWeight(Vector<Edge> edges) {
+        int total = 0;
+        for (Edge edge : edges) {
+            total += edge.getWeight();
+        }
+        return total;
+    }
+
+    private boolean allEdgesHaveWeights() {
+        for (Edge edge : edgeList) {
+            if (edge.getWeight() < 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void arrangeVertices() {

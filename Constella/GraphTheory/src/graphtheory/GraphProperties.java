@@ -33,7 +33,7 @@ public class GraphProperties {
             Edge edge = eList.get(i);
             int index1 = vList.indexOf(edge.vertex1);
             int index2 = vList.indexOf(edge.vertex2);
-            
+
             if (edge.isDirected()) {
                 adjacencyMatrix[index1][index2] = 1;
             } else {
@@ -47,7 +47,7 @@ public class GraphProperties {
     public int[][] generateDistanceMatrix(Vector<Vertex> vList) {
         distanceMatrix = new int[vList.size()][vList.size()];
 
-        for (int a = 0; a < vList.size(); a++)//initialize
+        for (int a = 0; a < vList.size(); a++) // initialize
         {
             for (int b = 0; b < vList.size(); b++) {
                 distanceMatrix[a][b] = 0;
@@ -67,77 +67,106 @@ public class GraphProperties {
         return distanceMatrix;
     }
 
+    // In GraphProperties.java, modify the findComponent method to accept vertexList as a parameter:
+    private void findComponent(Vertex v, Vector<Vertex> visited, Vector<Vertex> vertexList) {
+        visited.add(v);
+
+        // Use BFS to traverse both outgoing and incoming connections
+        Vector<Vertex> queue = new Vector<Vertex>();
+        queue.add(v);
+
+        while (!queue.isEmpty()) {
+            Vertex current = queue.remove(0);
+
+            // Check outgoing connections
+            for (Vertex neighbor : current.connectedVertices) {
+                if (!visited.contains(neighbor)) {
+                    visited.add(neighbor);
+                    queue.add(neighbor);
+                }
+            }
+
+            // Check incoming connections (vertices that point to current)
+            for (Vertex potentialSource : vertexList) {
+                if (potentialSource.connectedVertices.contains(current) && !visited.contains(potentialSource)) {
+                    visited.add(potentialSource);
+                    queue.add(potentialSource);
+                }
+            }
+        }
+    }
+
+    // Update the countComponents method to pass the vertexList:
     public int countComponents(Vector<Vertex> vList) {
         Vector<Vertex> visited = new Vector<Vertex>();
         int componentCount = 0;
-        
+
         for (Vertex v : vList) {
             if (!visited.contains(v)) {
                 componentCount++;
-                findComponentSimple(v, visited);
+                findComponent(v, visited, vList); // Pass vList as parameter
             }
         }
-        
+
         return componentCount;
     }
 
-    private void findComponentSimple(Vertex v, Vector<Vertex> visited) {
-        visited.add(v);
-        
-        for (Vertex neighbor : v.connectedVertices) {
-            // Only traverse if the connection is bidirectional OR
-            // if there's a directed edge from v to neighbor
-            if (!visited.contains(neighbor)) {
-                findComponentSimple(neighbor, visited);
-            }
-        }
-    }
-
-    public Vector<Vector<Vertex>> findComponents(Vector<Vertex> vList) {
-        Vector<Vector<Vertex>> components = new Vector<Vector<Vertex>>();
-        Vector<Vertex> visited = new Vector<Vertex>();
-        
-        for (Vertex v : vList) {
-            if (!visited.contains(v)) {
-                Vector<Vertex> component = new Vector<Vertex>();
-                findComponent(v, vList, component, visited); // pass vList here
-                components.add(component);
-            }
-        }
-        
-        return components;
-    }
-
-    private void findComponent(Vertex v, Vector<Vertex> vList, Vector<Vertex> component, Vector<Vertex> visited) {
+    // Update the findComponentForCollection method to accept vertexList:
+    private void findComponentForCollection(Vertex v, Vector<Vertex> visited, Vector<Vertex> component, Vector<Vertex> vertexList) {
         visited.add(v);
         component.add(v);
 
-        // outgoing neighbors
-        for (Vertex neighbor : v.connectedVertices) {
-            if (!visited.contains(neighbor)) {
-                findComponent(neighbor, vList, component, visited);
-            }
-        }
+        Vector<Vertex> queue = new Vector<Vertex>();
+        queue.add(v);
 
-        // incoming neighbors (treat edges as undirected)
-        for (Vertex possibleNeighbor : vList) {
-            if (possibleNeighbor.connectedVertices.contains(v) && !visited.contains(possibleNeighbor)) {
-                findComponent(possibleNeighbor, vList, component, visited);
+        while (!queue.isEmpty()) {
+            Vertex current = queue.remove(0);
+
+            // Outgoing connections
+            for (Vertex neighbor : current.connectedVertices) {
+                if (!visited.contains(neighbor)) {
+                    visited.add(neighbor);
+                    component.add(neighbor);
+                    queue.add(neighbor);
+                }
+            }
+
+            // Incoming connections
+            for (Vertex potentialSource : vertexList) {
+                if (potentialSource.connectedVertices.contains(current) && !visited.contains(potentialSource)) {
+                    visited.add(potentialSource);
+                    component.add(potentialSource);
+                    queue.add(potentialSource);
+                }
             }
         }
     }
 
+    // Update the findComponents method to pass vertexList:
+    public Vector<Vector<Vertex>> findComponents(Vector<Vertex> vList) {
+        Vector<Vector<Vertex>> components = new Vector<Vector<Vertex>>();
+        Vector<Vertex> visited = new Vector<Vertex>();
 
+        for (Vertex v : vList) {
+            if (!visited.contains(v)) {
+                Vector<Vertex> component = new Vector<Vertex>();
+                findComponentForCollection(v, visited, component, vList); // Pass vList as parameter
+                components.add(component);
+            }
+        }
+
+        return components;
+    }
 
     public char getComponentLabel(Vertex vertex, Vector<Vertex> vList) {
         Vector<Vector<Vertex>> components = findComponents(vList);
-        
+
         for (int i = 0; i < components.size(); i++) {
             if (components.get(i).contains(vertex)) {
-                return (char)('A' + i); 
+                return (char) ('A' + i);
             }
         }
-        
+
         return '?';
     }
 
@@ -147,8 +176,6 @@ public class GraphProperties {
         for (int i = 0; i < kWideGraph.length; i++) {
             kWideGraph[i] = -1;
         }
-
-
 
         VertexPair vp;
 
@@ -197,13 +224,12 @@ public class GraphProperties {
             }
         }
 
-
     }
 
     public void drawAdjacencyMatrix(Graphics g, Vector<Vertex> vList, int x, int y) {
         int cSize = 20;
         g.setColor(Color.LIGHT_GRAY);
-        g.fillRect(x, y-30, vList.size() * cSize+cSize, vList.size() * cSize+cSize);
+        g.fillRect(x, y - 30, vList.size() * cSize + cSize, vList.size() * cSize + cSize);
         g.setColor(Color.black);
         g.drawString("AdjacencyMatrix", x, y - cSize);
         for (int i = 0; i < vList.size(); i++) {
@@ -220,7 +246,7 @@ public class GraphProperties {
     public void drawDistanceMatrix(Graphics g, Vector<Vertex> vList, int x, int y) {
         int cSize = 20;
         g.setColor(Color.LIGHT_GRAY);
-        g.fillRect(x, y-30, vList.size() * cSize+cSize, vList.size() * cSize+cSize);
+        g.fillRect(x, y - 30, vList.size() * cSize + cSize, vList.size() * cSize + cSize);
         g.setColor(Color.black);
         g.drawString("ShortestPathMatrix", x, y - cSize);
         for (int i = 0; i < vList.size(); i++) {
@@ -239,7 +265,6 @@ public class GraphProperties {
         Vector<Vertex> tempList = new Vector<Vertex>();
         Vector<Vertex> toBeRemoved = new Vector<Vertex>();
         Vertex victim;
-
 
         origList.setSize(vList.size());
         Collections.copy(origList, vList);
@@ -276,35 +301,37 @@ public class GraphProperties {
     }
 
     private boolean graphConnectivity(Vector<Vertex> vList) {
-
-        Vector<Vertex> visitedList = new Vector<Vertex>();
-
-        recurseGraphConnectivity(vList.firstElement().connectedVertices, visitedList); //recursive function
-        if (visitedList.size() != vList.size()) {
-            return false;
-        } else {
+        if (vList == null || vList.size() == 0) {
             return true;
         }
+
+        Vector<Vertex> visitedList = new Vector<Vertex>();
+        Vertex start = vList.firstElement();
+        visitedList.add(start);
+        recurseGraphConnectivity(start, visitedList, vList); // recursive function
+
+        return visitedList.size() == vList.size();
     }
 
-    private void recurseGraphConnectivity(Vector<Vertex> vList, Vector<Vertex> visitedList) {
-        for (Vertex v : vList) {
-            {
-                if (!visitedList.contains(v)) {
-                    visitedList.add(v);
-                    recurseGraphConnectivity(v.connectedVertices, visitedList);
-                }
+    private void recurseGraphConnectivity(Vertex current, Vector<Vertex> visitedList, Vector<Vertex> allVertices) {
+        for (Vertex v : current.connectedVertices) {
+            if (!visitedList.contains(v) && allVertices.contains(v)) {
+                visitedList.add(v);
+                recurseGraphConnectivity(v, visitedList, allVertices);
             }
         }
+        // Note: this follows outgoing edges only (like original).
+        // If you want to consider incoming edges as well, you would
+        // need to iterate through allVertices and check who points to 'current'.
     }
 
-    private class ascendingDegreeComparator implements Comparator {
+    private class ascendingDegreeComparator implements Comparator<Vertex> {
 
-        public int compare(Object v1, Object v2) {
-
-            if (((Vertex) v1).getDegree() > ((Vertex) v2).getDegree()) {
+        @Override
+        public int compare(Vertex v1, Vertex v2) {
+            if (v1.getDegree() > v2.getDegree()) {
                 return 1;
-            } else if (((Vertex) v1).getDegree() > ((Vertex) v2).getDegree()) {
+            } else if (v1.getDegree() < v2.getDegree()) {
                 return -1;
             } else {
                 return 0;
@@ -312,13 +339,13 @@ public class GraphProperties {
         }
     }
 
-    private class descendingDegreeComparator implements Comparator {
+    private class descendingDegreeComparator implements Comparator<Vertex> {
 
-        public int compare(Object v1, Object v2) {
-
-            if (((Vertex) v1).getDegree() > ((Vertex) v2).getDegree()) {
+        @Override
+        public int compare(Vertex v1, Vertex v2) {
+            if (v1.getDegree() > v2.getDegree()) {
                 return -1;
-            } else if (((Vertex) v1).getDegree() > ((Vertex) v2).getDegree()) {
+            } else if (v1.getDegree() < v2.getDegree()) {
                 return 1;
             } else {
                 return 0;
@@ -326,13 +353,14 @@ public class GraphProperties {
         }
     }
 
-    private class descendingWidthComparator implements Comparator {
+    private class descendingWidthComparator implements Comparator<Vector<Vertex>> {
 
-        public int compare(Object v1, Object v2) {
+        @Override
+        public int compare(Vector<Vertex> v1, Vector<Vertex> v2) {
 
-            if (((Vector<Vertex>) v1).size() > (((Vector<Vertex>) v2).size())) {
+            if (v1.size() > v2.size()) {
                 return -1;
-            } else if (((Vector<Vertex>) v1).size() < (((Vector<Vertex>) v2).size())) {
+            } else if (v1.size() < v2.size()) {
                 return 1;
             } else {
                 return 0;
