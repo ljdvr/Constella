@@ -17,6 +17,7 @@ public class Vertex implements Comparable {
     public Point location;
     public boolean wasFocused;
     public boolean wasClicked;
+    public boolean isGlowing = false;
     private int size1 = 30;
     private int size2 = 40;
     public Vector<Vertex> connectedVertices;
@@ -64,7 +65,13 @@ public class Vertex implements Comparable {
 
     public void draw(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
-        
+
+        // 🔵 Glow effect first (drawn behind the node)
+        if (isGlowing) {
+            g2d.setColor(new Color(50, 150, 255));
+            g2d.fillOval(location.x - size2 / 2 - 10, location.y - size2 / 2 - 10, size2 + 20, size2 + 20);
+        }
+
         if (wasClicked) {
             // Red star (critical node)
             g2d.setColor(Color.RED);
@@ -74,8 +81,8 @@ public class Vertex implements Comparable {
         } else if (wasFocused) {
             // Blue highlighted star
             GradientPaint gradient = new GradientPaint(
-                location.x - size2/2, location.y - size2/2, new Color(100, 100, 255),
-                location.x + size2/2, location.y + size2/2, new Color(0, 0, 200)
+                location.x - size2 / 2, location.y - size2 / 2, new Color(100, 100, 255),
+                location.x + size2 / 2, location.y + size2 / 2, new Color(0, 0, 200)
             );
             g2d.setPaint(gradient);
             g2d.fillOval(location.x - size2 / 2, location.y - size2 / 2, size2, size2);
@@ -84,8 +91,8 @@ public class Vertex implements Comparable {
         } else {
             // Normal star with gradient
             GradientPaint gradient = new GradientPaint(
-                location.x - size2/2, location.y - size2/2, new Color(200, 200, 255),
-                location.x + size2/2, location.y + size2/2, new Color(200, 200, 255)
+                location.x - size2 / 2, location.y - size2 / 2, new Color(200, 200, 255),
+                location.x + size2 / 2, location.y + size2 / 2, new Color(200, 200, 255)
             );
             g2d.setPaint(gradient);
             g2d.fillOval(location.x - size2 / 2, location.y - size2 / 2, size2, size2);
