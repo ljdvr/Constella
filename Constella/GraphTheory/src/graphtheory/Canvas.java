@@ -35,6 +35,7 @@ public class Canvas {
     private String degreeInfo = "";
     private String componentInfo = "";
     private Vector<Vertex> currentShortestPath = null;
+    private String currentTool = ""; // keeps track of the active tool
     /////////////
 
     // Space/constellation theme elements
@@ -98,6 +99,10 @@ public class Canvas {
         menuOptions3.add(item);
 
         item = createMenuItem("Shortest Path", KeyEvent.VK_P);
+        item.addActionListener(new MenuListener());
+        menuOptions4.add(item);
+
+        item = createMenuItem("Centrality", KeyEvent.VK_C);
         item.addActionListener(new MenuListener());
         menuOptions4.add(item);
 
@@ -380,6 +385,25 @@ public class Canvas {
         @Override
         public void mousePressed(MouseEvent e) {
             if (selectedWindow == 0 && vertexList.size() > 0) {
+                if (currentTool.equals("Centrality")) {
+                    boolean clickedOnGlowingVertex = false;
+
+                    for (Vertex v : vertexList) {
+                        if (v.isGlowing && v.hasIntersection(e.getX(), e.getY())) {
+                            clickedOnGlowingVertex = true;
+                            break;
+                        }
+                    }
+
+                    // If click is NOT on the glowing vertex, remove glow
+                    if (!clickedOnGlowingVertex) {
+                        for (Vertex v : vertexList) {
+                            v.isGlowing = false;
+                        }
+                        currentTool = ""; // deactivate centrality
+                        refresh();
+                    }
+                }
                 switch (selectedTool) {
                     case 2: { // Connect Stars
                         for (Vertex v : vertexList) {
@@ -637,6 +661,9 @@ public class Canvas {
                                 "Shortest Path Found", JOptionPane.INFORMATION_MESSAGE);
                     }
                 }
+            } else if (command.equals("Centrality")) {
+                currentTool = "Centrality";
+                highlightCentralityVertex();
             } else if (command.equals("Minimum Spanning Tree")) {
                 if (vertexList.size() < 2) {
                     JOptionPane.showMessageDialog(frame, "Need at least 2 stars for MST!", "Info", JOptionPane.INFORMATION_MESSAGE);
@@ -1034,6 +1061,35 @@ public class Canvas {
             }
         }
     }
+
+private void highlightCentralityVertex() {
+    if (vertexList.isEmpty() || edgeList.isEmpty()) return;
+
+    Vertex maxVertex = null;
+    int maxDegree = -1;
+
+    for (Vertex v : vertexList) {
+        int degree = 0;
+        for (Edge e : edgeList) {
+            if (e.isDirected()) {
+                if (e.vertex2 == v) degree++;
+            } else {
+                if (e.vertex1 == v || e.vertex2 == v) degree++;
+            }
+        }
+        if (degree > maxDegree) {
+            maxDegree = degree;
+            maxVertex = v;
+        }
+    }
+
+    if (maxVertex != null) {
+        maxVertex.isGlowing = true; // glow persists
+    }
+
+    currentTool = "Centrality"; // keep tool active
+    refresh();
+}
 
     private String getToolName(int toolId) {
         switch (toolId) {
