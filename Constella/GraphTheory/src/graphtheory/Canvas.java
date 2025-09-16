@@ -25,7 +25,6 @@ public class Canvas {
     public int width, height;
     private int clickedVertexIndex;
     private int clickedEdgeIndex;
-    private FileManager fileManager = new FileManager();
 
     /////////////
     private Vector<Vertex> vertexList;
@@ -63,36 +62,21 @@ public class Canvas {
         menuBar = new JMenuBar();
         menuBar.setBackground(new Color(10, 10, 40));
 
-        JMenu menuOptions1 = new JMenu("File");
         JMenu menuOptions2 = new JMenu("Extras");
         JMenu menuOptions3 = new JMenu("Window");
         JMenu menuOptions4 = new JMenu("Calculate");
-        
 
-        styleMenu(menuOptions1);
         styleMenu(menuOptions2);
         styleMenu(menuOptions3);
         styleMenu(menuOptions4);
 
-        JMenuItem item = createMenuItem("Open Constellation", KeyEvent.VK_O);
-        item.addActionListener(new MenuListener());
-        menuOptions1.add(item);
-
-        item = createMenuItem("Save Constellation", KeyEvent.VK_S);
-        item.addActionListener(new MenuListener());
-        menuOptions1.add(item);
-
-        item = createMenuItem("Auto Arrange Stars", 0);
+        JMenuItem item = createMenuItem("Auto Arrange Stars", 0);
         item.addActionListener(new MenuListener());
         menuOptions2.add(item);
 
         item = createMenuItem("Clear Sky", 0);
         item.addActionListener(new MenuListener());
         menuOptions2.add(item);
-
-        item = createMenuItem("Constellation View", 0);
-        item.addActionListener(new MenuListener());
-        menuOptions3.add(item);
 
         item = createMenuItem("Stellar Properties", 0);
         item.addActionListener(new MenuListener());
@@ -110,7 +94,6 @@ public class Canvas {
         item.addActionListener(new MenuListener());
         menuOptions4.add(item);
 
-        menuBar.add(menuOptions1);
         menuBar.add(menuOptions2);
         menuBar.add(menuOptions3);
         menuBar.add(menuOptions4);
@@ -575,17 +558,6 @@ public class Canvas {
                 clickedVertexIndex = 0;
                 erase();
                 refresh();
-            } else if (command.equals("Open Constellation")) {
-                int returnValue = fileManager.jF.showOpenDialog(frame);
-                if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    loadFile(fileManager.loadFile(fileManager.jF.getSelectedFile()));
-                    selectedWindow = 0;
-                }
-            } else if (command.equals("Save Constellation")) {
-                int returnValue = fileManager.jF.showSaveDialog(frame);
-                if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    fileManager.saveFile(vertexList, fileManager.jF.getSelectedFile());
-                }
             } else if (command.equals("Constellation View")) {
                 selectedWindow = 0;
                 erase();
